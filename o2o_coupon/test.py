@@ -1,30 +1,52 @@
 import pandas as pd
 import numpy as np
+from datetime import date
 
-ipl_data1 = {'user_id': [1002625, 100330, 1003825,1008100,1010689],
-         'coupon_id': [4806, 8635, 13870,4727,7965],
-         'max_date_received': [20160726,20160703,20160731,20160721,20160718],
-         'min_date_received':[20160712,20160702,20160716,20160711,20160712]}
-t2 = pd.DataFrame(ipl_data1)
-print (t2)
+off_test = pd.read_csv('test_revised.csv',header=0)
+off_test.columns = ['user_id','merchant_id','coupon_id','discount_rate','distance','date_received']
+dataset3 = off_test.dropna(how='any')
 
-ipl_data2 = {'user_id': [4129537, 6949378, 2166529,2166529],
-         'coupon_id': [9983, 3429, 6928,1808],
-         'date_received': [20160712,20160706,20160727,20160727]}
-t3 = pd.DataFrame(ipl_data2)
-print (t3)
-#填充缺失值
-t3 = pd.merge(t3, t2, on=['user_id', 'coupon_id'], how='left').fillna(0)
-#去掉缺失行
-#t3 = pd.merge(t3, t2, on=['user_id', 'coupon_id'], how='left').dropna(how='any')
-print (t3)
-
-def testFun(s):
+def get_day_gap_before(s):
     date_received, dates = s.split('-')
     dates = dates.split(':')
-    return float(date_received)+1
+    gaps = []
+    for d in dates:
+        this_gap = (date(int(date_received[0:4]), int(date_received[4:6]), int(date_received[6:8])) - date(int(d[0:4]),
+                                                                                                           int(d[4:6]),
+                                                                                                           int(d[
+                                                                                                               6:8]))).days
+        if this_gap > 0:
+            gaps.append(this_gap)
+    if len(gaps) == 0:
+        return -1
+    else:
+        return min(gaps)
 
-t3['date_received_date'] = t3.max_date_received.astype('str') + '-' + t3.min_date_received.astype('str')
-print (t3)
-t3['test_data'] = t3.date_received_date.apply(testFun)
-print (t3)
+
+def get_day_gap_after(s):
+    date_received, dates = s.split('-')
+    dates = dates.split(':')
+    gaps = []
+    for d in dates:
+        this_gap = (date(int(d[0:4]), int(d[4:6]), int(d[6:8])) - date(int(date_received[0:4]), int(date_received[4:6]),
+                                                                       int(date_received[6:8]))).days
+        if this_gap > 0:
+            gaps.append(this_gap)
+    if len(gaps) == 0:
+        return -1
+    else:
+        return min(gaps)
+
+t6 = dataset3[['user_id', 'coupon_id', 'date_received']]
+t6.date_received = t6.date_received.astype('str')
+t6 = t6.groupby(['user_id', 'coupon_id'])['date_received'].agg(lambda x: ':'.join(x)).reset_index()
+t6.rename(columns={'date_received': 'dates'}, inplace=True)
+
+t7 = dataset3[['user_id', 'coupon_id', 'date_received']]
+t7 = pd.merge(t7, t6, on=['user_id', 'coupon_id'], how='left')
+print(t7)
+t7['date_received_date'] = t7.date_received.astype('str') + '-'+t6.dates
+t7['day_gap_before'] = t7.date_received_date.apply(get_day_gap_before)
+t7['day_gap_after'] = t7.date_received_date.apply(get_day_gap_after)
+t7 = t7[['user_id', 'coupon_id', 'date_received', 'day_gap_before', 'day_gap_after']]
+print(t7[:5])

@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 from datetime import date
+import math
 """
     思路：滑块法
     1、特征数据划分                            
@@ -44,32 +45,32 @@ from datetime import date
 """
  1、读取、划分 数据
 """
-off_train = pd.read_csv('data/ccf_offline_stage1_train.csv',header=None)
+off_train = pd.read_csv('data/ccf_offline_stage1_train.csv',header=0)
 off_train.columns = ['user_id','merchant_id','coupon_id','discount_rate','distance','date_received','date']
 
-off_test = pd.read_csv('data/ccf_offline_stage1_test_revised.csv',header=None)
+off_test = pd.read_csv('data/ccf_offline_stage1_test_revised.csv',header=0)
 off_test.columns = ['user_id','merchant_id','coupon_id','discount_rate','distance','date_received']
 
-on_train = pd.read_csv('data/ccf_online_stage1_train.csv',header=None)
+on_train = pd.read_csv('data/ccf_online_stage1_train.csv',header=0)
 on_train.columns = ['user_id','merchant_id','action','coupon_id','discount_rate','date_received','date']
 
-dataset3 = off_test
+dataset3 = off_test.dropna(how='any')
 feature3 = off_train[
         ((off_train.date>='20160315')&(off_train.date<='20160630'))|
         ((off_train.date=='null')&(off_train.date_received>='20160315')&
-         (off_train.date_received<='20160630'))]
+         (off_train.date_received<='20160630'))].dropna(how='any')
 
-dataset2 = off_train[(off_train.date_received>='20160515')&(off_train.date_received<='20160615')]
+dataset2 = off_train[(off_train.date_received>='20160515')&(off_train.date_received<='20160615')].dropna(how='any')
 feature2 = off_train[
         (off_train.date>='20160201')&(off_train.date<='20160514')|
         ((off_train.date=='null')&(off_train.date_received>='20160201')&
-         (off_train.date_received<='20160514'))]
+         (off_train.date_received<='20160514'))].dropna(how='any')
 
-dataset1 = off_train[(off_train.date_received>='20160414')&(off_train.date_received<='20160514')]
+dataset1 = off_train[(off_train.date_received>='20160414')&(off_train.date_received<='20160514')].dropna(how='any')
 feature1 = off_train[
         (off_train.date>='20160101')&(off_train.date<='20160413')|
         ((off_train.date=='null')&(off_train.date_received>='20160101')&
-         (off_train.date_received<='20160413'))]
+         (off_train.date_received<='20160413'))].dropna(how='any')
 
 """
     其他特征数据
@@ -90,7 +91,8 @@ def is_firstlastone(x):
         return -1  # those only receive once
 
 def get_day_gap_before(s):
-    print(s)
+    if type(s) == float:
+        print(s)
     date_received, dates = s.split('-')
     dates = dates.split(':')
     gaps = []
@@ -120,8 +122,7 @@ def get_day_gap_after(s):
         return -1
     else:
         return min(gaps)
-def get_date(date_received,dates):
-    return date_received + '-' + dates.astype('str')
+
 def dealDataset3(dataset3):
     # dataset3
     t = dataset3[['user_id']]
@@ -168,8 +169,10 @@ def dealDataset3(dataset3):
     t6.rename(columns={'date_received': 'dates'}, inplace=True)
 
     t7 = dataset3[['user_id', 'coupon_id', 'date_received']]
-    t7 = pd.merge(t7, t6, on=['user_id', 'coupon_id'], how='left')
-    t7['date_received_date'] = t7.apply(lambda row : get_date(row['date_received'],row['dates']),axis=1)
+    t7 = pd.merge(t7, t6, on=['user_id', 'coupon_id'], how='left').dropna(how='any')
+    t7['date_received_date'] = t7.date_received.astype('str') + '-' + t6.dates
+    # test = t7.stream(lambda s: (type(s.date_received_date) == float))
+    # print(test[:5])
     t7['day_gap_before'] = t7.date_received_date.apply(get_day_gap_before)
     t7['day_gap_after'] = t7.date_received_date.apply(get_day_gap_after)
     t7 = t7[['user_id', 'coupon_id', 'date_received', 'day_gap_before', 'day_gap_after']]
