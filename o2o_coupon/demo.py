@@ -44,13 +44,13 @@ from datetime import date
 """
  1、读取、划分 数据
 """
-off_train = pd.read_csv('ccf_offline_stage1_train.csv',header=None)
+off_train = pd.read_csv('data/ccf_offline_stage1_train.csv',header=None)
 off_train.columns = ['user_id','merchant_id','coupon_id','discount_rate','distance','date_received','date']
 
-off_test = pd.read_csv('ccf_offline_stage1_test_revised.csv',header=None)
+off_test = pd.read_csv('data/ccf_offline_stage1_test_revised.csv',header=None)
 off_test.columns = ['user_id','merchant_id','coupon_id','discount_rate','distance','date_received']
 
-on_train = pd.read_csv('ccf_online_stage1_train.csv',header=None)
+on_train = pd.read_csv('data/ccf_online_stage1_train.csv',header=None)
 on_train.columns = ['user_id','merchant_id','action','coupon_id','discount_rate','date_received','date']
 
 dataset3 = off_test
@@ -90,6 +90,7 @@ def is_firstlastone(x):
         return -1  # those only receive once
 
 def get_day_gap_before(s):
+    print(s)
     date_received, dates = s.split('-')
     dates = dates.split(':')
     gaps = []
@@ -125,12 +126,10 @@ def dealDataset3(dataset3):
     t = dataset3[['user_id']]
     t['this_month_user_receive_all_coupon_count'] = 1
     t = t.groupby('user_id').agg('sum').reset_index()
-    print(t[:5])
 
     t1 = dataset3[['user_id', 'coupon_id']]
     t1['this_month_user_receive_same_coupon_count'] = 1
     t1 = t1.groupby(['user_id', 'coupon_id']).agg('sum').reset_index()
-    print(t1[:5])
 
     t2 = dataset3[['user_id', 'coupon_id', 'date_received']]
     t2.date_received = t2.date_received.astype('str')
@@ -140,10 +139,10 @@ def dealDataset3(dataset3):
     t2['max_date_received'] = t2.date_received.apply(lambda s: max([int(d) for d in s.split(':')]))
     t2['min_date_received'] = t2.date_received.apply(lambda s: min([int(d) for d in s.split(':')]))
     t2 = t2[['user_id', 'coupon_id', 'max_date_received', 'min_date_received']]
-    print(t2[:5])
 
     t3 = dataset3[['user_id', 'coupon_id', 'date_received']]
     t3 = pd.merge(t3, t2, on=['user_id', 'coupon_id'], how='left').dropna(how='any')
+    t3.date_received = t3.date_received.astype('float')
     t3['this_month_user_receive_same_coupon_lastone'] = t3.max_date_received - t3.date_received
     t3['this_month_user_receive_same_coupon_firstone'] = t3.date_received - t3.min_date_received
 
@@ -153,7 +152,6 @@ def dealDataset3(dataset3):
         is_firstlastone)
     t3 = t3[['user_id', 'coupon_id', 'date_received', 'this_month_user_receive_same_coupon_lastone',
              'this_month_user_receive_same_coupon_firstone']]
-    print(t3[:5])
 
     t4 = dataset3[['user_id', 'date_received']]
     t4['this_day_user_receive_all_coupon_count'] = 1
@@ -167,12 +165,14 @@ def dealDataset3(dataset3):
     t6.date_received = t6.date_received.astype('str')
     t6 = t6.groupby(['user_id', 'coupon_id'])['date_received'].agg(lambda x: ':'.join(x)).reset_index()
     t6.rename(columns={'date_received': 'dates'}, inplace=True)
+
     t7 = dataset3[['user_id', 'coupon_id', 'date_received']]
-    t7 = pd.merge(t7, t6, on=['user_id', 'coupon_id'], how='left').dropna(how='any')
-    t7['date_received_date'] = t7.date_received.astype('str') + '-' + t7.dates
+    t7 = pd.merge(t7, t6, on=['user_id', 'coupon_id'], how='left')
+    t7['date_received_date'] = t7.date_received + '-' + t6.dates.astype('str')
     t7['day_gap_before'] = t7.date_received_date.apply(get_day_gap_before)
     t7['day_gap_after'] = t7.date_received_date.apply(get_day_gap_after)
     t7 = t7[['user_id', 'coupon_id', 'date_received', 'day_gap_before', 'day_gap_after']]
+    print(t7[:5])
 
     other_feature3 = pd.merge(t1, t, on='user_id').dropna(how='any')
     other_feature3 = pd.merge(other_feature3, t3, on=['user_id', 'coupon_id']).dropna(how='any')

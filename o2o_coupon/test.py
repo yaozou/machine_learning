@@ -16,5 +16,15 @@ print (t3)
 #填充缺失值
 t3 = pd.merge(t3, t2, on=['user_id', 'coupon_id'], how='left').fillna(0)
 #去掉缺失行
-t3 = pd.merge(t3, t2, on=['user_id', 'coupon_id'], how='left').dropna(how='any')
+#t3 = pd.merge(t3, t2, on=['user_id', 'coupon_id'], how='left').dropna(how='any')
+print (t3)
+
+def testFun(s):
+    date_received, dates = s.split('-')
+    dates = dates.split(':')
+    return float(date_received)+1
+
+t3['date_received_date'] = t3.max_date_received.astype('str') + '-' + t3.min_date_received.astype('str')
+print (t3)
+t3['test_data'] = t3.date_received_date.apply(testFun)
 print (t3)
