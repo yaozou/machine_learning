@@ -143,9 +143,7 @@ def dealDataset3(dataset3):
     print(t2[:5])
 
     t3 = dataset3[['user_id', 'coupon_id', 'date_received']]
-    print(t3[:5])
-    t3 = pd.merge(t3, t2, on=['user_id', 'coupon_id'], how='left')
-    print(t3[:5])
+    t3 = pd.merge(t3, t2, on=['user_id', 'coupon_id'], how='left').dropna(how='any')
     t3['this_month_user_receive_same_coupon_lastone'] = t3.max_date_received - t3.date_received
     t3['this_month_user_receive_same_coupon_firstone'] = t3.date_received - t3.min_date_received
 
@@ -170,17 +168,17 @@ def dealDataset3(dataset3):
     t6 = t6.groupby(['user_id', 'coupon_id'])['date_received'].agg(lambda x: ':'.join(x)).reset_index()
     t6.rename(columns={'date_received': 'dates'}, inplace=True)
     t7 = dataset3[['user_id', 'coupon_id', 'date_received']]
-    t7 = pd.merge(t7, t6, on=['user_id', 'coupon_id'], how='left')
+    t7 = pd.merge(t7, t6, on=['user_id', 'coupon_id'], how='left').dropna(how='any')
     t7['date_received_date'] = t7.date_received.astype('str') + '-' + t7.dates
     t7['day_gap_before'] = t7.date_received_date.apply(get_day_gap_before)
     t7['day_gap_after'] = t7.date_received_date.apply(get_day_gap_after)
     t7 = t7[['user_id', 'coupon_id', 'date_received', 'day_gap_before', 'day_gap_after']]
 
-    other_feature3 = pd.merge(t1, t, on='user_id')
-    other_feature3 = pd.merge(other_feature3, t3, on=['user_id', 'coupon_id'])
-    other_feature3 = pd.merge(other_feature3, t4, on=['user_id', 'date_received'])
-    other_feature3 = pd.merge(other_feature3, t5, on=['user_id', 'coupon_id', 'date_received'])
-    other_feature3 = pd.merge(other_feature3, t7, on=['user_id', 'coupon_id', 'date_received'])
+    other_feature3 = pd.merge(t1, t, on='user_id').dropna(how='any')
+    other_feature3 = pd.merge(other_feature3, t3, on=['user_id', 'coupon_id']).dropna(how='any')
+    other_feature3 = pd.merge(other_feature3, t4, on=['user_id', 'date_received']).dropna(how='any')
+    other_feature3 = pd.merge(other_feature3, t5, on=['user_id', 'coupon_id', 'date_received']).dropna(how='any')
+    other_feature3 = pd.merge(other_feature3, t7, on=['user_id', 'coupon_id', 'date_received']).dropna(how='any')
     other_feature3.to_csv('data/other_feature3.csv', index=None)
     print(other_feature3.shape)
 

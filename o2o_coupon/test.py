@@ -13,5 +13,8 @@ ipl_data2 = {'user_id': [4129537, 6949378, 2166529,2166529],
          'date_received': [20160712,20160706,20160727,20160727]}
 t3 = pd.DataFrame(ipl_data2)
 print (t3)
-t3 = pd.merge(t3, t2, on=['user_id', 'coupon_id'], how='left')
+#填充缺失值
+t3 = pd.merge(t3, t2, on=['user_id', 'coupon_id'], how='left').fillna(0)
+#去掉缺失行
+t3 = pd.merge(t3, t2, on=['user_id', 'coupon_id'], how='left').dropna(how='any')
 print (t3)
