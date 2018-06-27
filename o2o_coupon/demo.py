@@ -120,7 +120,8 @@ def get_day_gap_after(s):
         return -1
     else:
         return min(gaps)
-
+def get_date(date_received,dates):
+    return date_received + '-' + dates.astype('str')
 def dealDataset3(dataset3):
     # dataset3
     t = dataset3[['user_id']]
@@ -168,7 +169,7 @@ def dealDataset3(dataset3):
 
     t7 = dataset3[['user_id', 'coupon_id', 'date_received']]
     t7 = pd.merge(t7, t6, on=['user_id', 'coupon_id'], how='left')
-    t7['date_received_date'] = t7.date_received + '-' + t6.dates.astype('str')
+    t7['date_received_date'] = t7.apply(lambda row : get_date(row['date_received'],row['dates']),axis=1)
     t7['day_gap_before'] = t7.date_received_date.apply(get_day_gap_before)
     t7['day_gap_after'] = t7.date_received_date.apply(get_day_gap_after)
     t7 = t7[['user_id', 'coupon_id', 'date_received', 'day_gap_before', 'day_gap_after']]
