@@ -91,8 +91,6 @@ def is_firstlastone(x):
         return -1  # those only receive once
 
 def get_day_gap_before(s):
-    if type(s) == float:
-        print(s)
     date_received, dates = s.split('-')
     dates = dates.split(':')
     gaps = []
@@ -170,9 +168,7 @@ def dealDataset3(dataset3):
 
     t7 = dataset3[['user_id', 'coupon_id', 'date_received']]
     t7 = pd.merge(t7, t6, on=['user_id', 'coupon_id'], how='left').dropna(how='any')
-    t7['date_received_date'] = t7.date_received.astype('str') + '-' + t6.dates
-    # test = t7.stream(lambda s: (type(s.date_received_date) == float))
-    # print(test[:5])
+    t7['date_received_date'] = t7.date_received.astype('str') + '-' + t7.dates
     t7['day_gap_before'] = t7.date_received_date.apply(get_day_gap_before)
     t7['day_gap_after'] = t7.date_received_date.apply(get_day_gap_after)
     t7 = t7[['user_id', 'coupon_id', 'date_received', 'day_gap_before', 'day_gap_after']]

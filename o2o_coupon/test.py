@@ -37,6 +37,10 @@ def get_day_gap_after(s):
     else:
         return min(gaps)
 
+def test(s):
+    print(type(s))
+    return type(s) == float
+
 t6 = dataset3[['user_id', 'coupon_id', 'date_received']]
 t6.date_received = t6.date_received.astype('str')
 t6 = t6.groupby(['user_id', 'coupon_id'])['date_received'].agg(lambda x: ':'.join(x)).reset_index()
@@ -44,8 +48,10 @@ t6.rename(columns={'date_received': 'dates'}, inplace=True)
 
 t7 = dataset3[['user_id', 'coupon_id', 'date_received']]
 t7 = pd.merge(t7, t6, on=['user_id', 'coupon_id'], how='left')
-print(t7)
 t7['date_received_date'] = t7.date_received.astype('str') + '-'+t6.dates
+print(t7[:5])
+test = t7[test(t7['date_received_date'])]
+print(test[:5])
 t7['day_gap_before'] = t7.date_received_date.apply(get_day_gap_before)
 t7['day_gap_after'] = t7.date_received_date.apply(get_day_gap_after)
 t7 = t7[['user_id', 'coupon_id', 'date_received', 'day_gap_before', 'day_gap_after']]
