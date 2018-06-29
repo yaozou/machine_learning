@@ -5,45 +5,77 @@ import math
 """
     思路：滑块法
     1、特征数据划分                            
-        dateset3: 20160701~20160731 (113640),features3 from 20160315~20160630  (off_test)
-        dateset2: 20160515~20160615 (258446),features2 from 20160201~20160514  
-        dateset1: 20160414~20160514 (138303),features1 from 20160101~20160413
-    2、其他特征:
-      this_month_user_receive_all_coupon_count
-      this_month_user_receive_same_coupon_count
-      this_month_user_receive_same_coupon_lastone
-      this_month_user_receive_same_coupon_firstone
-      this_day_user_receive_all_coupon_count
-      this_day_user_receive_same_coupon_count
-      day_gap_before, day_gap_after  (receive the same coupon)
+                       预测区间                          特征区间
+        【dataset3】20160701~20160731 (113640)   【feature3】20160315~20160630  （测试集）
+        【dataset2】20160515~20160615 (258446)   【feature2】20160201~20160514  （训练集2）
+        【dataset1】20160414~20160514 (138303)   【feature1】20160101~20160413  （训练集1）
+    2、8个，从训练集1、训练集2和测试集的预测区间提取： 
+      this_month_user_receive_all_coupon_count 这个月用户收取的所有优惠券数目 
+      this_month_user_receive_same_coupon_count 这个月用户收到的相同优惠券的数量 
+      this_month_user_receive_same_coupon_lastone 这个月优惠券最远接受时间 
+      this_month_user_receive_same_coupon_firstone 这个月优惠券最近接受时间 
+      this_day_user_receive_all_coupon_count 一天内用户接收到所有优惠券的数量 
+      this_day_user_receive_same_coupon_count 一天内用户接收到相同优惠券的数量 
+      day_gap_before 用户上一次领取优惠券的时间间隔 
+      day_gap_after  (receive the same coupon)用户下一次领取优惠券的时间间隔
       
-    1.merchant related: 
-      使用券的数量：sales_use_coupon  总券数：total_coupon
-      使用率：transfer_rate = sales_use_coupon/total_coupon.
-      merchant_avg_distance,merchant_min_distance,merchant_max_distance of those use coupon 
-      total_sales.  coupon_rate = sales_use_coupon/total_sales.  
+    3、商户相关特征，9个，从训练集1、训练集2和测试集的特征区间提取： 
+        total_sales # 显示每个商品的销售数量
+        sales_use_coupon # 显示使用了优惠券消费的商品
+        total_coupon # 显示了商品的优惠券的总数量
+        coupon_rate = sales_use_coupon/total_sales # 卖出商品中使用优惠券的占比
+        merchant_coupon_transfer_rate = sales_use_coupon/total_coupon # 优惠券的使用率
 
-2.coupon related: 
-      discount_rate. discount_man. discount_jian. is_man_jian
-      day_of_week,day_of_month. (date_received)
+        merchant_mean_distance # 所有使用优惠券消费的用户与商户的距离平均值
+        merchant_median_distance # 所有使用优惠券消费的用户与商户的距离中位值
+        merchant_min_distance # 所有使用优惠券消费的用户与商户的距离最小值
+        merchant_max_distance # 所有使用优惠券消费的用户与商户的距离最大值
+
+    4、优惠券相关特征，8个，从训练集1、训练集2和测试集的预测区间提取： 
+        discount_rate # 优惠券折扣率
+        discount_man # 显示满了多少钱后开始减
+        discount_jian # 显示满减的减少的钱
+        is_man_jian # 返回优惠券是否是满减券
+        day_of_week # 显示时间是第几周
+        day_of_month # 显示时间是几月
+        days_distance# 优惠券领取日期和截止日之间的间隔天数
+        is_weekend //优惠券领取日期是否属于周末
       
-3.user related: 
-      distance. 
-      user_avg_distance, user_min_distance,user_max_distance. 
-      buy_use_coupon. buy_total. coupon_received.
-      buy_use_coupon/coupon_received. 
-      avg_diff_date_datereceived. min_diff_date_datereceived. max_diff_date_datereceived.  
-      count_merchant.  
+    5、用户相关特征，14个，从训练集1、训练集2和测试集的特征区间提取：
+        count_merchant # 用户消费商户数量
+        user_avg_distance # 所有使用优惠券消费的商户与用户的平均距离
+        user_min_distance # 所有使用优惠券消费的商户与用户的最小距离
+        user_max_distance # 所有使用优惠券消费的商户与用户的最大距离
+        user_median_distance # 所有使用优惠券消费的商户与用户的中位距离
+        buy_use_coupon # 每个用户使用优惠券消费次数
+        buy_total # 用户消费次数
+        coupon_received # 用户领取优惠券次数
+        avg_user_date_datereceived_gap # 用户从领取优惠券到消费的平均时间间隔
+        min_user_date_datereceived_gap # 用户从领取优惠券到消费的最小时间间隔
+        max_user_date_datereceived_gap # 用户从领取优惠券到消费的最大时间间隔
+        user_coupon_transfer_rate = buy_use_coupon/coupon_received # 用户优惠券转化为实际消费比例
+        buy_use_coupon_rate = buy_use_coupon/buy_total # 用户使用优惠券消费占总消费的比例
+        user_date_datereceived_gap # 接受到优惠券的日期和使用之间的间隔
 
-4.user_merchant:
-      times_user_buy_merchant_before.
-     
-
+    6、用户-商户相关特征，9个，从训练样本date,date_received提取特征： 
+        user_merchant_buy_total # 用户在商户消费次数
+        user_merchant_received # 用户领取商户优惠券次数
+        user_merchant_buy_use_coupon # 用户在商户使用优惠券消费次数
+        user_merchant_any # 用户在商户的所有消费次数
+        user_merchant_buy_common # 用户在商户普通消费次数
+        user_merchant_coupon_transfer_rate # 用户对商户的优惠券转化率
+        user_merchant_coupon_buy_rate # 用户对商户使用优惠券消费占总消费比例
+        user_merchant_rate # 用户对商户消费占总交互比例
+        user_merchant_common_buy_rate # 用户对商户普通消费占总消费比例
 
 """
 
 """
- 1、读取、划分 数据
+ 1、特征数据划分                            
+                       预测区间                          特征区间
+        【dataset3】20160701~20160731 (113640)   【feature3】20160315~20160630  （测试集）
+        【dataset2】20160515~20160615 (258446)   【feature2】20160201~20160514  （训练集2）
+        【dataset1】20160414~20160514 (138303)   【feature1】20160101~20160413  （训练集1）
 """
 off_train = pd.read_csv('data/ccf_offline_stage1_train.csv',header=0)
 off_train.columns = ['user_id','merchant_id','coupon_id','discount_rate','distance','date_received','date']
@@ -73,14 +105,15 @@ feature1 = off_train[
          (off_train.date_received<='20160413'))].dropna(how='any')
 
 """
-    其他特征数据
-    this_month_user_receive_all_coupon_count 用户本月领取券总数量
-    this_month_user_receive_same_coupon_count 用户本月领取相同券总数量
-    this_month_user_receive_same_coupon_lastone 用户本月领取相同券（最后一次领取）
-    this_month_user_receive_same_coupon_firstone 用户本月领取相同券（第一次领取）
-    this_day_user_receive_all_coupon_count 用户每天领取券总数量
-    this_day_user_receive_same_coupon_count 用户每天领取相同券总数量
-    day_gap_before, day_gap_after  (receive the same coupon)
+    2、8个，从训练集1、训练集2和测试集的预测区间提取： 
+      this_month_user_receive_all_coupon_count 这个月用户收取的所有优惠券数目 
+      this_month_user_receive_same_coupon_count 这个月用户收到的相同优惠券的数量 
+      this_month_user_receive_same_coupon_lastone 这个月优惠券最远接受时间 
+      this_month_user_receive_same_coupon_firstone 这个月优惠券最近接受时间 
+      this_day_user_receive_all_coupon_count 一天内用户接收到所有优惠券的数量 
+      this_day_user_receive_same_coupon_count 一天内用户接收到相同优惠券的数量 
+      day_gap_before 用户上一次领取优惠券的时间间隔 
+      day_gap_after  (receive the same coupon)用户下一次领取优惠券的时间间隔
 """
 def is_firstlastone(x):
     if x == 0:
@@ -97,8 +130,7 @@ def get_day_gap_before(s):
     for d in dates:
         this_gap = (date(int(date_received[0:4]), int(date_received[4:6]), int(date_received[6:8])) - date(int(d[0:4]),
                                                                                                            int(d[4:6]),
-                                                                                                           int(d[
-                                                                                                               6:8]))).days
+                                                                                                           int(d[6:8]))).days
         if this_gap > 0:
             gaps.append(this_gap)
     if len(gaps) == 0:
@@ -303,102 +335,18 @@ dealDataset3(dataset3)
 dealDataset2(dataset2)
 dealDataset1(dataset1)
 
-############# coupon related feature   #############
 """
-2.coupon related: 
-      discount_rate. discount_man. discount_jian. is_man_jian
-      day_of_week,day_of_month. (date_received)
-"""
-def calc_discount_rate(s):
-    s = str(s)
-    s = s.split(':')
-    if len(s) == 1:
-        return float(s[0])
-    else:
-        return 1.0 - float(s[1]) / float(s[0])
+3、商户相关特征，9个，从训练集1、训练集2和测试集的特征区间提取： 
+        total_sales # 显示每个商品的销售数量
+        sales_use_coupon # 显示使用了优惠券消费的商品
+        total_coupon # 显示了商品的优惠券的总数量
+        coupon_rate = sales_use_coupon/total_sales # 卖出商品中使用优惠券的占比
+        merchant_coupon_transfer_rate = sales_use_coupon/total_coupon # 优惠券的使用率
 
-
-def get_discount_man(s):
-    s = str(s)
-    s = s.split(':')
-    if len(s) == 1:
-        return 'null'
-    else:
-        return int(s[0])
-
-
-def get_discount_jian(s):
-    s = str(s)
-    s = s.split(':')
-    if len(s) == 1:
-        return 'null'
-    else:
-        return int(s[1])
-
-
-def is_man_jian(s):
-    s = str(s)
-    s = s.split(':')
-    if len(s) == 1:
-        return 0
-    else:
-        return 1
-
-def couponRelatedFeature (dataset3,dataset2,dataset1):
-    # dataset3
-    dataset3['day_of_week'] = dataset3.date_received.astype('str').apply(
-        lambda x: date(int(x[0:4]), int(x[4:6]), int(x[6:8])).weekday() + 1)
-    dataset3['day_of_month'] = dataset3.date_received.astype('str').apply(lambda x: int(x[6:8]))
-    dataset3['days_distance'] = dataset3.date_received.astype('str').apply(
-        lambda x: (date(int(x[0:4]), int(x[4:6]), int(x[6:8])) - date(2016, 6, 30)).days)
-    dataset3['discount_man'] = dataset3.discount_rate.apply(get_discount_man)
-    dataset3['discount_jian'] = dataset3.discount_rate.apply(get_discount_jian)
-    dataset3['is_man_jian'] = dataset3.discount_rate.apply(is_man_jian)
-    dataset3['discount_rate'] = dataset3.discount_rate.apply(calc_discount_rate)
-    d = dataset3[['coupon_id']]
-    d['coupon_count'] = 1
-    d = d.groupby('coupon_id').agg('sum').reset_index()
-    dataset3 = pd.merge(dataset3, d, on='coupon_id', how='left')
-    dataset3.to_csv('data/coupon3_feature.csv', index=None)
-    # dataset2
-    dataset2['day_of_week'] = dataset2.date_received.astype('str').apply(
-        lambda x: date(int(x[0:4]), int(x[4:6]), int(x[6:8])).weekday() + 1)
-    dataset2['day_of_month'] = dataset2.date_received.astype('str').apply(lambda x: int(x[6:8]))
-    dataset2['days_distance'] = dataset2.date_received.astype('str').apply(
-        lambda x: (date(int(x[0:4]), int(x[4:6]), int(x[6:8])) - date(2016, 5, 14)).days)
-    dataset2['discount_man'] = dataset2.discount_rate.apply(get_discount_man)
-    dataset2['discount_jian'] = dataset2.discount_rate.apply(get_discount_jian)
-    dataset2['is_man_jian'] = dataset2.discount_rate.apply(is_man_jian)
-    dataset2['discount_rate'] = dataset2.discount_rate.apply(calc_discount_rate)
-    d = dataset2[['coupon_id']]
-    d['coupon_count'] = 1
-    d = d.groupby('coupon_id').agg('sum').reset_index()
-    dataset2 = pd.merge(dataset2, d, on='coupon_id', how='left')
-    dataset2.to_csv('data/coupon2_feature.csv', index=None)
-    # dataset1
-    dataset1['day_of_week'] = dataset1.date_received.astype('str').apply(
-        lambda x: date(int(x[0:4]), int(x[4:6]), int(x[6:8])).weekday() + 1)
-    dataset1['day_of_month'] = dataset1.date_received.astype('str').apply(lambda x: int(x[6:8]))
-    dataset1['days_distance'] = dataset1.date_received.astype('str').apply(
-        lambda x: (date(int(x[0:4]), int(x[4:6]), int(x[6:8])) - date(2016, 4, 13)).days)
-    dataset1['discount_man'] = dataset1.discount_rate.apply(get_discount_man)
-    dataset1['discount_jian'] = dataset1.discount_rate.apply(get_discount_jian)
-    dataset1['is_man_jian'] = dataset1.discount_rate.apply(is_man_jian)
-    dataset1['discount_rate'] = dataset1.discount_rate.apply(calc_discount_rate)
-    d = dataset1[['coupon_id']]
-    d['coupon_count'] = 1
-    d = d.groupby('coupon_id').agg('sum').reset_index()
-    dataset1 = pd.merge(dataset1, d, on='coupon_id', how='left')
-    dataset1.to_csv('data/coupon1_feature.csv', index=None)
-
-
-############# merchant related feature   #############
-"""
-1.merchant related: 
-      total_sales. sales_use_coupon.  total_coupon
-      coupon_rate = sales_use_coupon/total_sales.  
-      transfer_rate = sales_use_coupon/total_coupon. 
-      merchant_avg_distance,merchant_min_distance,merchant_max_distance of those use coupon
+        merchant_mean_distance # 所有使用优惠券消费的用户与商户的距离平均值
+        merchant_median_distance # 所有使用优惠券消费的用户与商户的距离中位值
+        merchant_min_distance # 所有使用优惠券消费的用户与商户的距离最小值
+        merchant_max_distance # 所有使用优惠券消费的用户与商户的距离最大值
 
 """
 def merchantRelatedFeature():
@@ -549,19 +497,118 @@ def merchantRelatedFeature():
     merchant1_feature.total_coupon = merchant1_feature.total_coupon.replace(np.nan, 0)  # fillna with 0
     merchant1_feature.to_csv('data/merchant1_feature.csv', index=None)
 
-############# user related feature   #############
 """
-3.user related: 
-      count_merchant. 
-      user_avg_distance, user_min_distance,user_max_distance. 
-      buy_use_coupon. buy_total. coupon_received.
-      buy_use_coupon/coupon_received. 
-      buy_use_coupon/buy_total
-      user_date_datereceived_gap
+4、优惠券相关特征，8个，从训练集1、训练集2和测试集的预测区间提取： 
+        discount_rate # 优惠券折扣率
+        discount_man # 显示满了多少钱后开始减
+        discount_jian # 显示满减的减少的钱
+        is_man_jian # 返回优惠券是否是满减券
+        day_of_week # 显示时间是第几周
+        day_of_month # 显示时间是几月
+        days_distance# 优惠券领取日期和截止日之间的间隔天数
+        is_weekend //优惠券领取日期是否属于周末
+"""
+def calc_discount_rate(s):
+    s = str(s)
+    s = s.split(':')
+    if len(s) == 1:
+        return float(s[0])
+    else:
+        return 1.0 - float(s[1]) / float(s[0])
+
+
+def get_discount_man(s):
+    s = str(s)
+    s = s.split(':')
+    if len(s) == 1:
+        return 'null'
+    else:
+        return int(s[0])
+
+
+def get_discount_jian(s):
+    s = str(s)
+    s = s.split(':')
+    if len(s) == 1:
+        return 'null'
+    else:
+        return int(s[1])
+
+
+def is_man_jian(s):
+    s = str(s)
+    s = s.split(':')
+    if len(s) == 1:
+        return 0
+    else:
+        return 1
+
+def couponRelatedFeature (dataset3,dataset2,dataset1):
+    # dataset3
+    dataset3['day_of_week'] = dataset3.date_received.astype('str').apply(
+        lambda x: date(int(x[0:4]), int(x[4:6]), int(x[6:8])).weekday() + 1)
+    dataset3['day_of_month'] = dataset3.date_received.astype('str').apply(lambda x: int(x[6:8]))
+    dataset3['days_distance'] = dataset3.date_received.astype('str').apply(
+        lambda x: (date(int(x[0:4]), int(x[4:6]), int(x[6:8])) - date(2016, 6, 30)).days)
+    dataset3['discount_man'] = dataset3.discount_rate.apply(get_discount_man)
+    dataset3['discount_jian'] = dataset3.discount_rate.apply(get_discount_jian)
+    dataset3['is_man_jian'] = dataset3.discount_rate.apply(is_man_jian)
+    dataset3['discount_rate'] = dataset3.discount_rate.apply(calc_discount_rate)
+    d = dataset3[['coupon_id']]
+    d['coupon_count'] = 1
+    d = d.groupby('coupon_id').agg('sum').reset_index()
+    dataset3 = pd.merge(dataset3, d, on='coupon_id', how='left')
+    dataset3.to_csv('data/coupon3_feature.csv', index=None)
+    # dataset2
+    dataset2['day_of_week'] = dataset2.date_received.astype('str').apply(
+        lambda x: date(int(x[0:4]), int(x[4:6]), int(x[6:8])).weekday() + 1)
+    dataset2['day_of_month'] = dataset2.date_received.astype('str').apply(lambda x: int(x[6:8]))
+    dataset2['days_distance'] = dataset2.date_received.astype('str').apply(
+        lambda x: (date(int(x[0:4]), int(x[4:6]), int(x[6:8])) - date(2016, 5, 14)).days)
+    dataset2['discount_man'] = dataset2.discount_rate.apply(get_discount_man)
+    dataset2['discount_jian'] = dataset2.discount_rate.apply(get_discount_jian)
+    dataset2['is_man_jian'] = dataset2.discount_rate.apply(is_man_jian)
+    dataset2['discount_rate'] = dataset2.discount_rate.apply(calc_discount_rate)
+    d = dataset2[['coupon_id']]
+    d['coupon_count'] = 1
+    d = d.groupby('coupon_id').agg('sum').reset_index()
+    dataset2 = pd.merge(dataset2, d, on='coupon_id', how='left')
+    dataset2.to_csv('data/coupon2_feature.csv', index=None)
+    # dataset1
+    dataset1['day_of_week'] = dataset1.date_received.astype('str').apply(
+        lambda x: date(int(x[0:4]), int(x[4:6]), int(x[6:8])).weekday() + 1)
+    dataset1['day_of_month'] = dataset1.date_received.astype('str').apply(lambda x: int(x[6:8]))
+    dataset1['days_distance'] = dataset1.date_received.astype('str').apply(
+        lambda x: (date(int(x[0:4]), int(x[4:6]), int(x[6:8])) - date(2016, 4, 13)).days)
+    dataset1['discount_man'] = dataset1.discount_rate.apply(get_discount_man)
+    dataset1['discount_jian'] = dataset1.discount_rate.apply(get_discount_jian)
+    dataset1['is_man_jian'] = dataset1.discount_rate.apply(is_man_jian)
+    dataset1['discount_rate'] = dataset1.discount_rate.apply(calc_discount_rate)
+    d = dataset1[['coupon_id']]
+    d['coupon_count'] = 1
+    d = d.groupby('coupon_id').agg('sum').reset_index()
+    dataset1 = pd.merge(dataset1, d, on='coupon_id', how='left')
+    dataset1.to_csv('data/coupon1_feature.csv', index=None)
+
+"""
+5、用户相关特征，14个，从训练集1、训练集2和测试集的特征区间提取：
+        count_merchant # 用户消费商户数量
+        user_avg_distance # 所有使用优惠券消费的商户与用户的平均距离
+        user_min_distance # 所有使用优惠券消费的商户与用户的最小距离
+        user_max_distance # 所有使用优惠券消费的商户与用户的最大距离
+        user_median_distance # 所有使用优惠券消费的商户与用户的中位距离
+        buy_use_coupon # 每个用户使用优惠券消费次数
+        buy_total # 用户消费次数
+        coupon_received # 用户领取优惠券次数
+        avg_user_date_datereceived_gap # 用户从领取优惠券到消费的平均时间间隔
+        min_user_date_datereceived_gap # 用户从领取优惠券到消费的最小时间间隔
+        max_user_date_datereceived_gap # 用户从领取优惠券到消费的最大时间间隔
+        user_coupon_transfer_rate = buy_use_coupon/coupon_received # 用户优惠券转化为实际消费比例
+        buy_use_coupon_rate = buy_use_coupon/buy_total # 用户使用优惠券消费占总消费的比例
+        user_date_datereceived_gap # 接受到优惠券的日期和使用之间的间隔
 
 
 """
-
 def get_user_date_datereceived_gap(s):
     s = s.split(':')
     return (date(int(s[0][0:4]), int(s[0][4:6]), int(s[0][6:8])) - date(int(s[1][0:4]), int(s[1][4:6]),
@@ -789,11 +836,17 @@ def userRelatedFeature():
     user1_feature.coupon_received = user1_feature.coupon_received.replace(np.nan, 0)
     user1_feature.to_csv('data/user1_feature.csv', index=None)
 
-##################  user_merchant related feature #########################
-
 """
-4.user_merchant:
-      times_user_buy_merchant_before. 
+    6、用户-商户相关特征，9个，从训练样本date,date_received提取特征： 
+        user_merchant_buy_total # 用户在商户消费次数
+        user_merchant_received # 用户领取商户优惠券次数
+        user_merchant_buy_use_coupon # 用户在商户使用优惠券消费次数
+        user_merchant_any # 用户在商户的所有消费次数
+        user_merchant_buy_common # 用户在商户普通消费次数
+        user_merchant_coupon_transfer_rate # 用户对商户的优惠券转化率
+        user_merchant_coupon_buy_rate # 用户对商户使用优惠券消费占总消费比例
+        user_merchant_rate # 用户对商户消费占总交互比例
+        user_merchant_common_buy_rate # 用户对商户普通消费占总消费比例
 """
 def userMerchantRelatedFeature():
     # for dataset3
