@@ -37,19 +37,14 @@ params={'booster':'gbtree',
 	    'min_child_weight':1.1,
 	    'max_depth':5,
 	    'lambda':10,
-	    'subsample':0.7,
-	    'colsample_bytree':0.7,
-	    'colsample_bylevel':0.7,
+	    'subsample':0.8,
+	    'colsample_bytree':0.8,
+	    'colsample_bylevel':0.8,
 	    'eta': 0.01,
 	    'tree_method':'exact',
 	    'seed':0,
 	    'nthread':12
 	    }
-
-#train on dataset1, evaluate on dataset2
-#watchlist = [(dataset1,'train'),(dataset2,'val')]
-#model = xgb.train(params,dataset1,num_boost_round=3000,evals=watchlist,early_stopping_rounds=300)
-
 watchlist = [(dataset12,'train')]
 model = xgb.train(params,dataset12,num_boost_round=3500,evals=watchlist)
 
