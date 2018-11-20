@@ -52,7 +52,7 @@ model = xgb.train(params,dataset12,num_boost_round=3500,evals=watchlist)
 dataset3_preds['label'] = model.predict(dataset3)
 dataset3_preds.label = MinMaxScaler().fit_transform(dataset3_preds.label.reshape(-1, 1))
 dataset3_preds.sort_values(by=['coupon_id','label'],inplace=True)
-dataset3_preds.to_csv("xgb_preds.csv",index=None,header=None)
+dataset3_preds.to_csv("out/xgb_preds.csv",index=None,header=None)
 print(dataset3_preds.describe())
     
 #save feature score
@@ -62,7 +62,7 @@ fs = []
 for (key,value) in feature_score:
     fs.append("{0},{1}\n".format(key,value))
     
-with open('xgb_feature_score.csv','w') as f:
+with open('out/xgb_feature_score.csv','w') as f:
     f.writelines("feature,score\n")
     f.writelines(fs)
 
